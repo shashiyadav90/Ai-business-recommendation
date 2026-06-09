@@ -4,10 +4,20 @@ const API = axios.create({
   baseURL: "http://localhost:5000/api",
 });
 
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
 export const sendMessage = async (message) => {
-  const response = await API.post("/chat", {
+  return API.post("/chat", {
     message,
   });
-
-  return response.data;
 };
+
+export default API;

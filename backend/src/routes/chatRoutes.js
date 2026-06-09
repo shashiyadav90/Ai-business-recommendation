@@ -1,12 +1,9 @@
 import express from "express";
 import { chat } from "../controllers/chatController.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.send("Chat API Working 🚀");
-});
-
-router.post("/", chat);
+router.post("/", verifyToken, chat);
 
 export default router;

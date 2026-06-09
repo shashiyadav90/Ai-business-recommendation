@@ -1,93 +1,178 @@
 import groq from "../config/groq.js";
-import {
-  listedCompanies,
-  nonListedCompanies
-} from "../data/companies.js";
 
-export const getChatResponse = async (message) => {
+export const getChatResponse = async (
+  message,
+  conversationHistory = []
+) => {
   try {
+    const safeHistory =
+      conversationHistory.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+    const completion =
+      await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.3,
+        max_tokens: 800,
 
-    const prompt = `
-You are a Business Recommendation Assistant.
+        messages: [
+          {
+            role: "system",
+            content: `
+You are an intelligent Business Recommendation Assistant.
 
-AVAILABLE LISTED COMPANIES:
+Your job is to understand the user's requirement and collect only the information needed for that specific industry.
 
-${JSON.stringify(listedCompanies, null, 2)}
+IMPORTANT:
+- Do NOT ask fixed questions.
+- Analyze the requirement first.
+- Ask follow-up questions based on the industry.
+- Ask only ONE question at a time.
+- Remember previous answers from conversation history.
 
-AVAILABLE NON-LISTED COMPANY CATEGORIES:
+Examples:
 
-${JSON.stringify(nonListedCompanies, null, 2)}
+RESORTS / HOTELS:
+- Location
+- Budget
+- Number of Members
+- Duration
+- Resort Type (Luxury, Family, Adventure)
 
-USER REQUIREMENT:
-${message}
+RESTAURANTS:
+- Location
+- Veg / Non-Veg
+- Budget
+- Dining Type
+- Family or Couples
 
-TASK:
+EDUCATION:
+- School / College / Training Institute
+- Course Interested
+- Location
+- Budget
+- Online or Offline
 
-1. Understand the user's business requirement.
-2. Recommend the most relevant listed companies.
-3. If no listed company matches, recommend suitable non-listed categories.
-4. Include company description.
-5. Include services.
-6. Include email and phone for listed companies.
-7. Return ONLY valid JSON.
+HEALTHCARE:
+- Hospital / Clinic
+- Specialty Needed
+- Location
+- Budget
+- Emergency or Regular
 
-IMPORTANT RULES:
-- Return ONLY valid JSON.
-- Do not use markdown.
-- Do not use \`\`\`json.
-- Do not add explanations outside JSON.
+REAL ESTATE:
+- Residential / Commercial
+- Buy or Rent
+- Location
+- Budget
+- Property Size
 
-JSON FORMAT:
+CONSTRUCTION:
+- Residential or Commercial Project
+- Project Size
+- Budget
+- Location
+
+IT SERVICES:
+- Website Development
+- Mobile App Development
+- AI Solution
+- Cloud Services
+- Budget
+- Timeline
+
+MANUFACTURING:
+- Product Type
+- Quantity
+- Location
+- Budget
+
+LOGISTICS:
+- Shipping Type
+- Domestic or International
+- Pickup Location
+- Delivery Location
+
+FINTECH:
+- Payment Solution
+- Banking Solution
+- Loan Services
+- Budget
+
+FOOD INDUSTRY:
+- Supplier or Manufacturer
+- Veg or Non-Veg
+- Quantity Needed
+- Location
+
+RULES:
+
+1. Ask only ONE question at a time.
+2. Never ask all questions together.
+3. Continue asking questions until enough information is collected.
+4. Use previous conversation history to understand user answers.
+
+If more information is required, return:
 
 {
-  "requirement": "",
-  "listedRecommendations": [
-    {
-      "name": "",
-      "description": "",
-      "services": [],
-      "email": "",
-      "phone": ""
-    }
-  ],
-  "nonListedRecommendations": [
-    {
-      "category": "",
-      "description": ""
-    }
-  ]
+  "type": "question",
+  "question": ""
 }
-`;
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.5,
-      max_tokens: 1200,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an expert business recommendation assistant. Always return valid JSON only."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
-    });
+If enough information is collected, return:
 
-    const content = completion.choices[0].message.content;
+{
+  "type": "search",
+  "industry": "",
+  "requirements": {
+    "location": "",
+    "budget": "",
+    "type": "",
+    "members": "",
+    "duration": "",
+    "additionalDetails": ""
+  }
+}
 
-    try {
-      return JSON.parse(content);
-    } catch (error) {
-      return {
-        rawResponse: content
-      };
-    }
+Return ONLY valid JSON.
+Do NOT return markdown.
+Do NOT return explanations.
+`
+          },
+
+          ...conversationHistory,
+
+          {
+            role: "user",
+            content: message,
+          },
+        ],
+      });
+
+    const content =
+      completion.choices[0].message.content;
+
+    console.log("Raw AI Response:");
+    console.log(content);
+
+    const cleanedContent = content
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    return JSON.parse(cleanedContent);
 
   } catch (error) {
-    console.error("Groq Error:", error);
-    throw error;
+    console.error(
+      "Groq Error:",
+      error
+    );
+
+    return {
+      type: "question",
+      question:
+        "Can you provide more details about your requirement?"
+    };
   }
 };
