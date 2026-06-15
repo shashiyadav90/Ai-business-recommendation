@@ -9,6 +9,8 @@ import groq from "./config/groq.js";
 import authRoutes from "./routes/authRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 
+import adminRoutes from "./routes/adminRoutes.js";
+
 dotenv.config();
 
 /*
@@ -82,6 +84,8 @@ app.use(
 app.use("/api/auth", authRoutes);
 
 app.use("/api/chat", chatRoutes);
+
+app.use("/api/admin", adminRoutes);
 
 /*
 |--------------------------------------------------------------------------
