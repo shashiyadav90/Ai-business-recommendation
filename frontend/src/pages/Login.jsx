@@ -10,9 +10,7 @@ function Login({ onLogin }) {
   const [timer, setTimer] = useState(0);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -21,10 +19,7 @@ function Login({ onLogin }) {
   }, [timer]);
 
   const handleSendOTP = async () => {
-    if (!phone.trim()) {
-      alert("Please enter mobile number");
-      return;
-    }
+    if (!phone.trim()) { alert("Please enter mobile number"); return; }
     try {
       setLoading(true);
       await sendOTP(phone);
@@ -39,10 +34,7 @@ function Login({ onLogin }) {
   };
 
   const handleVerifyOTP = async () => {
-    if (!otp.trim()) {
-      alert("Please enter OTP");
-      return;
-    }
+    if (!otp.trim()) { alert("Please enter OTP"); return; }
     try {
       setLoading(true);
       const res = await verifyOTP(phone, otp);
@@ -58,42 +50,39 @@ function Login({ onLogin }) {
 
   return (
     <div style={styles.root}>
-      {/* Ambient glow blobs */}
+      {/* Background blobs */}
       <div style={styles.blob1} />
       <div style={styles.blob2} />
+      <div style={styles.blob3} />
 
-      {/* Grid overlay */}
-      <div style={styles.grid} />
-
-      <div style={{ ...styles.wrapper, opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(24px)", transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)" }}>
-
-        {/* Top accent line */}
-        <div style={styles.accentLine} />
+      <div style={{
+        ...styles.wrapper,
+        opacity: mounted ? 1 : 0,
+        transform: mounted ? "translateY(0)" : "translateY(24px)",
+        transition: "all 0.6s cubic-bezier(0.22,1,0.36,1)",
+      }}>
 
         {/* Card */}
         <div style={styles.card}>
 
-          {/* Logo area */}
-          <div style={styles.logoArea}>
+          {/* Gradient Header */}
+          <div style={styles.cardHeader}>
             <div style={styles.iconBadge}>
-              <Building2 size={22} color="#f59e0b" />
+              <Building2 size={24} color="#fff" />
             </div>
             <h1 style={styles.title}>CompanyMatch AI</h1>
             <p style={styles.subtitle}>Business Recommendation Platform</p>
           </div>
 
-          {/* Divider */}
-          <div style={styles.divider} />
-
-          {/* Form */}
-          <div style={styles.form}>
+          {/* Form Body */}
+          <div style={styles.formBody}>
 
             {/* Phone field */}
             <div style={styles.fieldWrap}>
               <label style={styles.label}>Mobile Number</label>
               <div style={styles.inputWrap}>
                 <div style={styles.prefix}>
-                  <Phone size={15} color="rgba(255,255,255,0.3)" />
+                  <Phone size={15} color="#a855f7" />
                   <span style={styles.prefixText}>+91</span>
                   <div style={styles.prefixDivider} />
                 </div>
@@ -104,8 +93,8 @@ function Login({ onLogin }) {
                   onChange={(e) => setPhone(e.target.value)}
                   disabled={otpSent}
                   style={{ ...styles.input, paddingLeft: "80px", opacity: otpSent ? 0.6 : 1 }}
-                  onFocus={(e) => (e.target.style.borderColor = "rgba(245,158,11,0.6)")}
-                  onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+                  onFocus={(e) => (e.target.style.borderColor = "#a855f7")}
+                  onBlur={(e) => (e.target.style.borderColor = "#e5e0f8")}
                 />
               </div>
             </div>
@@ -115,16 +104,20 @@ function Login({ onLogin }) {
               <div style={{ ...styles.fieldWrap, animation: "slideDown 0.35s cubic-bezier(0.22,1,0.36,1)" }}>
                 <label style={styles.label}>One-Time Password</label>
                 <div style={styles.inputWrap}>
-                  <ShieldCheck size={16} color="rgba(34,197,94,0.7)" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                  <ShieldCheck
+                    size={16}
+                    color="#7c3aed"
+                    style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+                  />
                   <input
                     type="text"
                     placeholder="Enter 6-digit OTP"
                     value={otp}
                     maxLength={6}
                     onChange={(e) => setOtp(e.target.value)}
-                    style={{ ...styles.input, paddingLeft: "44px", borderColor: "rgba(34,197,94,0.25)" }}
-                    onFocus={(e) => (e.target.style.borderColor = "rgba(34,197,94,0.6)")}
-                    onBlur={(e) => (e.target.style.borderColor = "rgba(34,197,94,0.25)")}
+                    style={{ ...styles.input, paddingLeft: "44px", borderColor: "#d8b4fe" }}
+                    onFocus={(e) => (e.target.style.borderColor = "#7c3aed")}
+                    onBlur={(e) => (e.target.style.borderColor = "#d8b4fe")}
                   />
                 </div>
                 <div style={styles.timerRow}>
@@ -143,8 +136,6 @@ function Login({ onLogin }) {
                 onClick={handleSendOTP}
                 disabled={loading}
                 style={{ ...styles.primaryBtn, opacity: loading ? 0.7 : 1 }}
-                onMouseOver={(e) => (e.currentTarget.style.background = "#fbbf24")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "#f59e0b")}
               >
                 <span>{loading ? "Sending OTP..." : "Send OTP"}</span>
                 {!loading && <ChevronRight size={16} />}
@@ -154,28 +145,26 @@ function Login({ onLogin }) {
                 onClick={handleVerifyOTP}
                 disabled={loading}
                 style={{ ...styles.verifyBtn, opacity: loading ? 0.7 : 1 }}
-                onMouseOver={(e) => (e.currentTarget.style.background = "rgba(34,197,94,0.2)")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "rgba(34,197,94,0.08)")}
               >
                 <ShieldCheck size={16} />
                 <span>{loading ? "Verifying..." : "Verify OTP"}</span>
               </button>
             )}
-          </div>
 
-          {/* Footer */}
-          <div style={styles.footer}>
-            <Lock size={11} color="rgba(255,255,255,0.2)" />
-            <span style={styles.footerText}>Secure OTP Authentication</span>
+            {/* Footer */}
+            <div style={styles.footer}>
+              <Lock size={11} color="#c4b5fd" />
+              <span style={styles.footerText}>Secure OTP Authentication</span>
+            </div>
           </div>
         </div>
 
         {/* Trust badges */}
         <div style={styles.badges}>
           {[
-            { icon: <TrendingUp size={16} color="#f59e0b" />, label: "AI Matching" },
-            { icon: <Building2 size={16} color="#f59e0b" />, label: "10k+ Companies" },
-            { icon: <Lock size={16} color="#f59e0b" />, label: "Bank-grade Security" },
+            { icon: <TrendingUp size={16} color="#7c3aed" />, label: "AI Matching" },
+            { icon: <Building2 size={16} color="#a855f7" />, label: "10k+ Companies" },
+            { icon: <Lock size={16} color="#ec4899" />, label: "Bank-grade Security" },
           ].map((b) => (
             <div key={b.label} style={styles.badge}>
               {b.icon}
@@ -191,7 +180,7 @@ function Login({ onLogin }) {
           from { opacity: 0; transform: translateY(-10px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        input::placeholder { color: rgba(255,255,255,0.25); }
+        input::placeholder { color: #c4b5fd; }
         input:disabled { cursor: not-allowed; }
       `}</style>
     </div>
@@ -201,7 +190,7 @@ function Login({ onLogin }) {
 const styles = {
   root: {
     minHeight: "100vh",
-    background: "#0a0a0a",
+    background: "linear-gradient(135deg, #f5f4fb 0%, #ede8fc 50%, #fce8f3 100%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -212,30 +201,23 @@ const styles = {
   },
   blob1: {
     position: "absolute",
-    top: "-120px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "500px",
-    height: "500px",
-    borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(245,158,11,0.07) 0%, transparent 65%)",
+    top: "-120px", left: "50%", transform: "translateX(-50%)",
+    width: "600px", height: "500px", borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 65%)",
     pointerEvents: "none",
   },
   blob2: {
     position: "absolute",
-    bottom: "-150px",
-    right: "-100px",
-    width: "400px",
-    height: "400px",
-    borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(34,197,94,0.05) 0%, transparent 65%)",
+    bottom: "-150px", right: "-100px",
+    width: "400px", height: "400px", borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 65%)",
     pointerEvents: "none",
   },
-  grid: {
+  blob3: {
     position: "absolute",
-    inset: 0,
-    backgroundImage: "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)",
-    backgroundSize: "40px 40px",
+    bottom: "-100px", left: "-80px",
+    width: "350px", height: "350px", borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 65%)",
     pointerEvents: "none",
   },
   wrapper: {
@@ -244,33 +226,25 @@ const styles = {
     position: "relative",
     zIndex: 1,
   },
-  accentLine: {
-    height: "1px",
-    background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.6), transparent)",
-    marginBottom: "0",
-    borderRadius: "1px",
-  },
   card: {
-    background: "rgba(255,255,255,0.04)",
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    borderTop: "none",
-    borderRadius: "0 0 20px 20px",
-    padding: "2rem",
-    backdropFilter: "blur(16px)",
+    background: "#ffffff",
+    border: "0.5px solid #e0d9f7",
+    borderRadius: "20px",
+    overflow: "hidden",
   },
-  logoArea: {
+  cardHeader: {
+    background: "linear-gradient(135deg, #7c3aed, #a855f7, #ec4899)",
+    padding: "2rem 2rem 1.75rem",
     textAlign: "center",
-    marginBottom: "1.5rem",
   },
   iconBadge: {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    width: "52px",
-    height: "52px",
-    background: "rgba(245,158,11,0.1)",
-    border: "0.5px solid rgba(245,158,11,0.3)",
-    borderRadius: "14px",
+    width: "56px", height: "56px",
+    background: "rgba(255,255,255,0.2)",
+    border: "2px solid rgba(255,255,255,0.4)",
+    borderRadius: "16px",
     marginBottom: "1rem",
   },
   title: {
@@ -282,17 +256,13 @@ const styles = {
   },
   subtitle: {
     fontSize: "11px",
-    color: "rgba(255,255,255,0.3)",
+    color: "rgba(255,255,255,0.75)",
     margin: 0,
     textTransform: "uppercase",
     letterSpacing: "0.08em",
   },
-  divider: {
-    height: "0.5px",
-    background: "rgba(255,255,255,0.07)",
-    marginBottom: "1.5rem",
-  },
-  form: {
+  formBody: {
+    padding: "1.75rem 2rem 2rem",
     display: "flex",
     flexDirection: "column",
     gap: "1rem",
@@ -304,74 +274,50 @@ const styles = {
   },
   label: {
     fontSize: "11px",
-    color: "rgba(255,255,255,0.4)",
+    color: "#a0a0b0",
     textTransform: "uppercase",
     letterSpacing: "0.05em",
   },
-  inputWrap: {
-    position: "relative",
-  },
+  inputWrap: { position: "relative" },
   prefix: {
     position: "absolute",
-    left: "14px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    pointerEvents: "none",
-    zIndex: 1,
+    left: "14px", top: "50%", transform: "translateY(-50%)",
+    display: "flex", alignItems: "center", gap: "6px",
+    pointerEvents: "none", zIndex: 1,
   },
-  prefixText: {
-    fontSize: "13px",
-    color: "rgba(255,255,255,0.3)",
-  },
+  prefixText: { fontSize: "13px", color: "#7c3aed" },
   prefixDivider: {
-    width: "0.5px",
-    height: "14px",
-    background: "rgba(255,255,255,0.1)",
-    marginLeft: "4px",
+    width: "0.5px", height: "14px",
+    background: "#e0d9f7", marginLeft: "4px",
   },
   input: {
     width: "100%",
-    background: "rgba(255,255,255,0.05)",
-    border: "0.5px solid rgba(255,255,255,0.1)",
+    background: "#faf9fe",
+    border: "1.5px solid #e5e0f8",
     borderRadius: "10px",
     padding: "12px 14px",
-    color: "#ffffff",
+    color: "#1a1a2e",
     fontSize: "14px",
     outline: "none",
     boxSizing: "border-box",
     transition: "border-color 0.2s",
   },
-  timerRow: {
-    display: "flex",
-    justifyContent: "flex-end",
-    marginTop: "4px",
-  },
-  timerText: {
-    fontSize: "11px",
-    color: "rgba(255,255,255,0.3)",
-  },
+  timerRow: { display: "flex", justifyContent: "flex-end", marginTop: "4px" },
+  timerText: { fontSize: "11px", color: "#a0a0b0" },
   resendBtn: {
-    fontSize: "11px",
-    color: "#f59e0b",
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: 0,
+    fontSize: "11px", color: "#7c3aed",
+    background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: 600,
   },
   primaryBtn: {
     width: "100%",
-    background: "#f59e0b",
+    background: "linear-gradient(135deg, #7c3aed, #a855f7)",
     border: "none",
     borderRadius: "10px",
     padding: "13px",
-    color: "#000",
+    color: "#ffffff",
     fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
-    transition: "background 0.2s, transform 0.1s",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -380,15 +326,14 @@ const styles = {
   },
   verifyBtn: {
     width: "100%",
-    background: "rgba(34,197,94,0.08)",
-    border: "0.5px solid rgba(34,197,94,0.3)",
+    background: "linear-gradient(135deg, #7c3aed, #ec4899)",
+    border: "none",
     borderRadius: "10px",
     padding: "13px",
-    color: "#22c55e",
+    color: "#ffffff",
     fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
-    transition: "background 0.2s",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -396,9 +341,9 @@ const styles = {
     marginTop: "0.25rem",
   },
   footer: {
-    marginTop: "1.75rem",
+    marginTop: "0.5rem",
     paddingTop: "1.25rem",
-    borderTop: "0.5px solid rgba(255,255,255,0.07)",
+    borderTop: "0.5px solid #f0ecfd",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -406,7 +351,7 @@ const styles = {
   },
   footerText: {
     fontSize: "11px",
-    color: "rgba(255,255,255,0.2)",
+    color: "#c4b5fd",
     letterSpacing: "0.03em",
   },
   badges: {
@@ -416,8 +361,8 @@ const styles = {
     marginTop: "12px",
   },
   badge: {
-    background: "rgba(255,255,255,0.03)",
-    border: "0.5px solid rgba(255,255,255,0.07)",
+    background: "#ffffff",
+    border: "0.5px solid #e0d9f7",
     borderRadius: "10px",
     padding: "10px 8px",
     display: "flex",
@@ -427,7 +372,7 @@ const styles = {
   },
   badgeText: {
     fontSize: "10px",
-    color: "rgba(255,255,255,0.3)",
+    color: "#a0a0b0",
     textAlign: "center",
     lineHeight: 1.3,
   },

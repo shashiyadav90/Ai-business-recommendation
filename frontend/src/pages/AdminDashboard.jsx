@@ -10,152 +10,179 @@ import {
   Trash2,
   X,
   Save,
+  ChevronDown,
+  ChevronRight,
+  UserPlus,
 } from "lucide-react";
 
 const API_BASE = "http://localhost:5000/api/admin";
 
 function AdminDashboard() {
-  const [members, setMembers] = useState([]);
+  const [chapterAdmins, setChapterAdmins] = useState([]);
+  const [regionalAdmins, setRegionalAdmins] = useState({});
+  const [expandedChapter, setExpandedChapter] = useState(null);
 
-  const [memberForm, setMemberForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    businessCategory: "",
-    services: "",
-    location: "",
-    description: "",
+  const [chapterForm, setChapterForm] = useState({
+    name: "", email: "", phone: "", businessCategory: "", services: "", location: "", description: "",
   });
 
-  const [editingMember, setEditingMember] = useState(null);
-  const [showMemberModal, setShowMemberModal] = useState(false);
-  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [regionalForm, setRegionalForm] = useState({
+    name: "", email: "", phone: "", businessCategory: "", services: "", location: "", description: "",
+  });
 
-  // ---------- Load Members ----------
-  useEffect(() => {
-    fetchMembers();
-  }, []);
+  const [editingChapter, setEditingChapter] = useState(null);
+  const [showChapterModal, setShowChapterModal] = useState(false);
+  const [showRegionalModal, setShowRegionalModal] = useState(false);
+  const [editingRegional, setEditingRegional] = useState(null);
+  const [activeChapterId, setActiveChapterId] = useState(null);
+  const [loadingChapter, setLoadingChapter] = useState(false);
+  const [loadingRegional, setLoadingRegional] = useState({});
 
-  const fetchMembers = async () => {
+  useEffect(() => { fetchChapterAdmins(); }, []);
+
+  const fetchChapterAdmins = async () => {
     try {
-      setLoadingMembers(true);
+      setLoadingChapter(true);
       const res = await axios.get(`${API_BASE}/members`);
-      setMembers(res.data || []);
+      setChapterAdmins(res.data || []);
     } catch (err) {
-      console.error("Failed to fetch members", err);
+      console.error("Failed to fetch chapter admins", err);
     } finally {
-      setLoadingMembers(false);
+      setLoadingChapter(false);
     }
   };
 
-  // ---------- Add / Update Member ----------
-  const resetMemberForm = () => {
-    setMemberForm({
-      name: "",
-      email: "",
-      phone: "",
-      businessCategory: "",
-      services: "",
-      location: "",
-      description: "",
+  const resetChapterForm = () => {
+    setChapterForm({ name: "", email: "", phone: "", businessCategory: "", services: "", location: "", description: "" });
+    setEditingChapter(null);
+  };
+
+  const openAddChapterModal = () => { resetChapterForm(); setShowChapterModal(true); };
+
+  const openEditChapterModal = (row) => {
+    setEditingChapter(row);
+    setChapterForm({
+      name: row.name || "", email: row.email || "", phone: row.phone || "",
+      businessCategory: row.businessCategory || "",
+      services: Array.isArray(row.services) ? row.services.join(",") : row.services || "",
+      location: row.location || "", description: row.description || "",
     });
-    setEditingMember(null);
+    setShowChapterModal(true);
   };
 
-  const openAddMemberModal = () => {
-    resetMemberForm();
-    setShowMemberModal(true);
-  };
-
-  const openEditMemberModal = (member) => {
-    setEditingMember(member);
-    setMemberForm({
-      name: member.name || "",
-      email: member.email || "",
-      phone: member.phone || "",
-      businessCategory: member.businessCategory || "",
-      services: Array.isArray(member.services)
-        ? member.services.join(",")
-        : member.services || "",
-      location: member.location || "",
-      description: member.description || "",
-    });
-    setShowMemberModal(true);
-  };
-
-  const addMember = async () => {
+  const handleChapterSubmit = async () => {
+    const payload = { ...chapterForm, services: chapterForm.services.split(",").map((s) => s.trim()).filter(Boolean) };
     try {
-      await axios.post(`${API_BASE}/members`, {
-        ...memberForm,
-        services: memberForm.services
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      });
-      await fetchMembers();
-      setShowMemberModal(false);
-      resetMemberForm();
+      if (editingChapter) {
+        await axios.put(`${API_BASE}/members/${editingChapter._id}`, payload);
+      } else {
+        await axios.post(`${API_BASE}/members`, payload);
+      }
+      await fetchChapterAdmins();
+      setShowChapterModal(false);
+      resetChapterForm();
     } catch (err) {
-      console.error("Failed to add member", err);
-      alert("Failed to add member");
+      console.error(err);
+      alert("Failed to save chapter admin");
     }
   };
 
-  const updateMember = async () => {
-    try {
-      await axios.put(`${API_BASE}/members/${editingMember._id}`, {
-        ...memberForm,
-        services: memberForm.services
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      });
-      await fetchMembers();
-      setShowMemberModal(false);
-      resetMemberForm();
-    } catch (err) {
-      console.error("Failed to update member", err);
-      alert("Failed to update member");
-    }
-  };
-
-  const handleMemberSubmit = () => {
-    if (editingMember) {
-      updateMember();
-    } else {
-      addMember();
-    }
-  };
-
-  // ---------- Delete Member ----------
-  const deleteMember = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this member?")) return;
+  const deleteChapterAdmin = async (id) => {
+    if (!window.confirm("Delete this chapter admin?")) return;
     try {
       await axios.delete(`${API_BASE}/members/${id}`);
-      await fetchMembers();
+      setRegionalAdmins((prev) => { const n = { ...prev }; delete n[id]; return n; });
+      await fetchChapterAdmins();
+    } catch (err) { alert("Failed to delete"); }
+  };
+
+  const fetchRegionalAdmins = async (chapterId) => {
+    try {
+      setLoadingRegional((prev) => ({ ...prev, [chapterId]: true }));
+      const res = await axios.get(`${API_BASE}/members/${chapterId}/regional`);
+      setRegionalAdmins((prev) => ({ ...prev, [chapterId]: res.data || [] }));
     } catch (err) {
-      console.error("Failed to delete member", err);
-      alert("Failed to delete member");
+      console.error("Failed to fetch regional admins", err);
+      setRegionalAdmins((prev) => ({ ...prev, [chapterId]: [] }));
+    } finally {
+      setLoadingRegional((prev) => ({ ...prev, [chapterId]: false }));
     }
   };
 
-  // ---------- Dashboard Stats ----------
-  const totalMembers = members.length;
-  const totalCategories = new Set(
-    members.map((m) => m.businessCategory).filter(Boolean)
-  ).size;
+  const toggleExpand = (chapterId) => {
+    if (expandedChapter === chapterId) {
+      setExpandedChapter(null);
+    } else {
+      setExpandedChapter(chapterId);
+      if (!regionalAdmins[chapterId]) fetchRegionalAdmins(chapterId);
+    }
+  };
 
-  // ---------- DataGrid Columns ----------
-  const memberColumns = [
+  const resetRegionalForm = () => {
+    setRegionalForm({ name: "", email: "", phone: "", businessCategory: "", services: "", location: "", description: "" });
+    setEditingRegional(null);
+  };
+
+  const openAddRegionalModal = (chapterId) => { setActiveChapterId(chapterId); resetRegionalForm(); setShowRegionalModal(true); };
+
+  const openEditRegionalModal = (chapterId, row) => {
+    setActiveChapterId(chapterId);
+    setEditingRegional(row);
+    setRegionalForm({
+      name: row.name || "", email: row.email || "", phone: row.phone || "",
+      businessCategory: row.businessCategory || "",
+      services: Array.isArray(row.services) ? row.services.join(",") : row.services || "",
+      location: row.location || "", description: row.description || "",
+    });
+    setShowRegionalModal(true);
+  };
+
+  const handleRegionalSubmit = async () => {
+    const payload = { ...regionalForm, services: regionalForm.services.split(",").map((s) => s.trim()).filter(Boolean) };
+    try {
+      if (editingRegional) {
+        await axios.put(`${API_BASE}/members/${activeChapterId}/regional/${editingRegional._id}`, payload);
+      } else {
+        await axios.post(`${API_BASE}/members/${activeChapterId}/regional`, payload);
+      }
+      await fetchRegionalAdmins(activeChapterId);
+      setShowRegionalModal(false);
+      resetRegionalForm();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save regional admin");
+    }
+  };
+
+  const deleteRegionalAdmin = async (chapterId, regionalId) => {
+    if (!window.confirm("Delete this regional admin?")) return;
+    try {
+      await axios.delete(`${API_BASE}/members/${chapterId}/regional/${regionalId}`);
+      await fetchRegionalAdmins(chapterId);
+    } catch (err) { alert("Failed to delete regional admin"); }
+  };
+
+  const totalChapterAdmins = chapterAdmins.length;
+  const totalRegionalAdmins = Object.values(regionalAdmins).reduce((sum, arr) => sum + arr.length, 0);
+  const totalCategories = new Set(chapterAdmins.map((m) => m.businessCategory).filter(Boolean)).size;
+
+  const chapterColumns = [
+    {
+      field: "expand", headerName: "", width: 48, sortable: false, filterable: false,
+      renderCell: (params) => (
+        <button style={styles.expandBtn} onClick={() => toggleExpand(params.row._id)}>
+          {expandedChapter === params.row._id
+            ? <ChevronDown size={15} color="#7c3aed" />
+            : <ChevronRight size={15} color="#c4b5fd" />}
+        </button>
+      ),
+    },
     { field: "name", headerName: "Name", flex: 1, minWidth: 150 },
     { field: "email", headerName: "Email", flex: 1, minWidth: 180 },
     { field: "phone", headerName: "Phone", flex: 1, minWidth: 130 },
     { field: "businessCategory", headerName: "Category", flex: 1, minWidth: 140 },
     {
-      field: "services",
-      headerName: "Services",
-      flex: 1.2,
-      minWidth: 180,
+      field: "services", headerName: "Services", flex: 1.2, minWidth: 180,
       renderCell: (params) => (
         <div style={styles.cellTags}>
           {(Array.isArray(params.value) ? params.value : []).slice(0, 3).map((s, i) => (
@@ -166,36 +193,64 @@ function AdminDashboard() {
     },
     { field: "location", headerName: "Location", flex: 1, minWidth: 130 },
     {
-      field: "edit",
-      headerName: "Edit",
-      width: 90,
-      sortable: false,
-      filterable: false,
+      field: "addRegional", headerName: "Add Regional", width: 120, sortable: false, filterable: false,
       renderCell: (params) => (
         <button
-          style={styles.iconActionBtn}
-          onClick={() => openEditMemberModal(params.row)}
-          onMouseOver={(e) => (e.currentTarget.style.borderColor = "rgba(245,158,11,0.4)")}
-          onMouseOut={(e) => (e.currentTarget.style.borderColor = "rgba(245,158,11,0.2)")}
+          style={styles.addRegionalBtn}
+          onClick={() => { toggleExpand(params.row._id); openAddRegionalModal(params.row._id); }}
         >
-          <Pencil size={14} color="#f59e0b" />
+          <UserPlus size={13} color="#7c3aed" />
+          <span style={{ fontSize: "11px", color: "#7c3aed" }}>Regional</span>
         </button>
       ),
     },
     {
-      field: "delete",
-      headerName: "Delete",
-      width: 90,
-      sortable: false,
-      filterable: false,
+      field: "edit", headerName: "Edit", width: 80, sortable: false, filterable: false,
       renderCell: (params) => (
-        <button
-          style={styles.iconActionBtnDanger}
-          onClick={() => deleteMember(params.row._id)}
-          onMouseOver={(e) => (e.currentTarget.style.borderColor = "rgba(239,68,68,0.4)")}
-          onMouseOut={(e) => (e.currentTarget.style.borderColor = "rgba(239,68,68,0.2)")}
-        >
-          <Trash2 size={14} color="#ef4444" />
+        <button style={styles.iconActionBtn} onClick={() => openEditChapterModal(params.row)}>
+          <Pencil size={13} color="#7c3aed" />
+        </button>
+      ),
+    },
+    {
+      field: "delete", headerName: "Delete", width: 80, sortable: false, filterable: false,
+      renderCell: (params) => (
+        <button style={styles.iconActionBtnDanger} onClick={() => deleteChapterAdmin(params.row._id)}>
+          <Trash2 size={13} color="#ef4444" />
+        </button>
+      ),
+    },
+  ];
+
+  const regionalColumns = (chapterId) => [
+    { field: "name", headerName: "Name", flex: 1, minWidth: 150 },
+    { field: "email", headerName: "Email", flex: 1, minWidth: 180 },
+    { field: "phone", headerName: "Phone", flex: 1, minWidth: 130 },
+    { field: "businessCategory", headerName: "Category", flex: 1, minWidth: 140 },
+    {
+      field: "services", headerName: "Services", flex: 1.2, minWidth: 180,
+      renderCell: (params) => (
+        <div style={styles.cellTags}>
+          {(Array.isArray(params.value) ? params.value : []).slice(0, 3).map((s, i) => (
+            <span key={i} style={styles.cellTag}>{s}</span>
+          ))}
+        </div>
+      ),
+    },
+    { field: "location", headerName: "Location", flex: 1, minWidth: 130 },
+    {
+      field: "edit", headerName: "Edit", width: 80, sortable: false, filterable: false,
+      renderCell: (params) => (
+        <button style={styles.iconActionBtn} onClick={() => openEditRegionalModal(chapterId, params.row)}>
+          <Pencil size={13} color="#7c3aed" />
+        </button>
+      ),
+    },
+    {
+      field: "delete", headerName: "Delete", width: 80, sortable: false, filterable: false,
+      renderCell: (params) => (
+        <button style={styles.iconActionBtnDanger} onClick={() => deleteRegionalAdmin(chapterId, params.row._id)}>
+          <Trash2 size={13} color="#ef4444" />
         </button>
       ),
     },
@@ -203,179 +258,185 @@ function AdminDashboard() {
 
   return (
     <div style={styles.root}>
-      <div style={styles.blob1} />
-      <div style={styles.blob2} />
-      <div style={styles.grid} />
-
       {/* Navbar */}
       <div style={styles.navbar}>
         <div style={styles.navInner}>
           <div style={styles.navBrand}>
             <div style={styles.navIconBadge}>
-              <ShieldCheck size={18} color="#f59e0b" />
+              <ShieldCheck size={18} color="#7c3aed" />
             </div>
             <div>
               <h1 style={styles.navTitle}>Admin Dashboard</h1>
-              <p style={styles.navSub}>CompanyMatch AI · Management Console</p>
+              <p style={styles.navSub}>Management Console</p>
             </div>
           </div>
         </div>
       </div>
 
       <div style={styles.container}>
-        <div style={styles.accentLine} />
-
-        {/* Stats Cards */}
+        {/* Stats */}
         <div style={styles.statsGrid}>
-          <StatCard
-            icon={<Users size={20} color="#f59e0b" />}
-            label="Total Members"
-            value={totalMembers}
-          />
-          <StatCard
-            icon={<LayoutGrid size={20} color="#60a5fa" />}
-            label="Categories"
-            value={totalCategories}
-          />
+          <StatCard icon={<Users size={20} color="#7c3aed" />} label="Chapter Admins" value={totalChapterAdmins} color="#f3effe" iconColor="#7c3aed" />
+          <StatCard icon={<UserPlus size={20} color="#a855f7" />} label="Regional Admins" value={totalRegionalAdmins} color="#faf5ff" iconColor="#a855f7" />
+          <StatCard icon={<LayoutGrid size={20} color="#ec4899" />} label="Categories" value={totalCategories} color="#fdf2f8" iconColor="#ec4899" />
         </div>
 
-        {/* Members Section */}
+        {/* Chapter Admins Section */}
         <div style={styles.sectionCard}>
-          <div style={styles.sectionHeader}>
+          <div style={styles.cardGradientHeader}>
             <div>
-              <h2 style={styles.sectionTitle}>Members</h2>
-              <p style={styles.sectionSub}>Manage business member listings</p>
+              <h2 style={styles.cardHeaderTitle}>Chapter Wise Admins</h2>
+              <p style={styles.cardHeaderSub}>Click the arrow to expand and manage regional admins</p>
             </div>
-            <button
-              style={styles.primaryBtn}
-              onClick={openAddMemberModal}
-              onMouseOver={(e) => (e.currentTarget.style.background = "#fbbf24")}
-              onMouseOut={(e) => (e.currentTarget.style.background = "#f59e0b")}
-            >
+            <button style={styles.primaryBtn} onClick={openAddChapterModal}>
               <Plus size={16} />
-              Add Member
+              Add Chapter Admin
             </button>
           </div>
 
           <div style={styles.gridWrap}>
             <DataGrid
-              key={members.length}
-              rows={members}
-              columns={memberColumns}
+              key={chapterAdmins.length}
+              rows={chapterAdmins}
+              columns={chapterColumns}
               getRowId={(row) => row._id}
-              loading={loadingMembers}
+              loading={loadingChapter}
               autoHeight
               disableRowSelectionOnClick
               pageSizeOptions={[5, 10, 25]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10 } },
-              }}
+              initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
               sx={dataGridSx}
             />
-            {!loadingMembers && members.length === 0 && (
-              <div style={styles.emptyRow}>
-                No members added yet. Click "Add Member" to create one.
-              </div>
+            {!loadingChapter && chapterAdmins.length === 0 && (
+              <div style={styles.emptyRow}>No chapter admins yet. Click "Add Chapter Admin" to create one.</div>
             )}
           </div>
+
+          {/* Expandable Regional Admin panels */}
+          {chapterAdmins.map((chapter) =>
+            expandedChapter === chapter._id ? (
+              <div key={chapter._id} style={styles.regionalPanel}>
+                <div style={styles.regionalPanelHeader}>
+                  <div style={styles.regionalPanelTitle}>
+                    <div style={styles.regionalDot} />
+                    <span style={styles.regionalPanelName}>
+                      Regional Admins under <strong style={{ color: "#7c3aed" }}>{chapter.name}</strong>
+                    </span>
+                  </div>
+                  <button style={styles.addRegionalBtnLarge} onClick={() => openAddRegionalModal(chapter._id)}>
+                    <UserPlus size={15} />
+                    Add Regional Admin
+                  </button>
+                </div>
+
+                <div style={styles.regionalGridWrap}>
+                  <DataGrid
+                    key={(regionalAdmins[chapter._id] || []).length}
+                    rows={regionalAdmins[chapter._id] || []}
+                    columns={regionalColumns(chapter._id)}
+                    getRowId={(row) => row._id}
+                    loading={loadingRegional[chapter._id]}
+                    autoHeight
+                    disableRowSelectionOnClick
+                    pageSizeOptions={[5, 10]}
+                    initialState={{ pagination: { paginationModel: { pageSize: 5 } } }}
+                    sx={regionalDataGridSx}
+                  />
+                  {!loadingRegional[chapter._id] && (regionalAdmins[chapter._id] || []).length === 0 && (
+                    <div style={styles.emptyRow}>No regional admins yet for this chapter.</div>
+                  )}
+                </div>
+              </div>
+            ) : null
+          )}
         </div>
       </div>
 
-      {/* Add/Edit Member Modal */}
-      {showMemberModal && (
-        <div style={styles.modalOverlay} onClick={() => setShowMemberModal(false)}>
-          <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>
-                {editingMember ? "Edit Member" : "Add Member"}
-              </h3>
-              <button style={styles.closeBtn} onClick={() => setShowMemberModal(false)}>
-                <X size={18} color="rgba(255,255,255,0.5)" />
-              </button>
-            </div>
+      {/* Chapter Admin Modal */}
+      {showChapterModal && (
+        <MemberModal
+          title={editingChapter ? "Edit Chapter Admin" : "Add Chapter Admin"}
+          form={chapterForm}
+          setForm={setChapterForm}
+          onSubmit={handleChapterSubmit}
+          onClose={() => { setShowChapterModal(false); resetChapterForm(); }}
+          submitLabel={editingChapter ? "Update" : "Save"}
+        />
+      )}
 
-            <div style={styles.modalBody}>
-              <FormField
-                label="Name"
-                value={memberForm.name}
-                onChange={(v) => setMemberForm({ ...memberForm, name: v })}
-                placeholder="Company name"
-              />
-              <FormField
-                label="Email"
-                value={memberForm.email}
-                onChange={(v) => setMemberForm({ ...memberForm, email: v })}
-                placeholder="contact@company.com"
-              />
-              <FormField
-                label="Phone"
-                value={memberForm.phone}
-                onChange={(v) => setMemberForm({ ...memberForm, phone: v })}
-                placeholder="+91 9876543210"
-              />
-              <FormField
-                label="Business Category"
-                value={memberForm.businessCategory}
-                onChange={(v) => setMemberForm({ ...memberForm, businessCategory: v })}
-                placeholder="e.g. IT Services"
-              />
-              <FormField
-                label="Services (comma separated)"
-                value={memberForm.services}
-                onChange={(v) => setMemberForm({ ...memberForm, services: v })}
-                placeholder="Web Development, Cloud, AI"
-              />
-              <FormField
-                label="Location"
-                value={memberForm.location}
-                onChange={(v) => setMemberForm({ ...memberForm, location: v })}
-                placeholder="Bangalore, India"
-              />
-              <FormField
-                label="Description"
-                value={memberForm.description}
-                onChange={(v) => setMemberForm({ ...memberForm, description: v })}
-                placeholder="Brief description of the business"
-                textarea
-              />
-            </div>
-
-            <div style={styles.modalFooter}>
-              <button
-                style={styles.cancelBtn}
-                onClick={() => setShowMemberModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                style={styles.primaryBtn}
-                onClick={handleMemberSubmit}
-                onMouseOver={(e) => (e.currentTarget.style.background = "#fbbf24")}
-                onMouseOut={(e) => (e.currentTarget.style.background = "#f59e0b")}
-              >
-                <Save size={16} />
-                {editingMember ? "Update Member" : "Save Member"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Regional Admin Modal */}
+      {showRegionalModal && (
+        <MemberModal
+          title={editingRegional ? "Edit Regional Admin" : "Add Regional Admin"}
+          form={regionalForm}
+          setForm={setRegionalForm}
+          onSubmit={handleRegionalSubmit}
+          onClose={() => { setShowRegionalModal(false); resetRegionalForm(); }}
+          submitLabel={editingRegional ? "Update" : "Save"}
+          accent="#a855f7"
+        />
       )}
 
       <style>{`
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-        input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.2); }
-        input:focus, textarea:focus { outline: none; border-color: rgba(245,158,11,0.5) !important; }
+        ::-webkit-scrollbar-thumb { background: #e0d9f7; border-radius: 4px; }
+        input::placeholder, textarea::placeholder { color: #c4b5fd; }
+        input:focus, textarea:focus { outline: none; border-color: #a855f7 !important; }
       `}</style>
     </div>
   );
 }
 
-function StatCard({ icon, label, value }) {
+// ---------- Reusable Modal ----------
+function MemberModal({ title, form, setForm, onSubmit, onClose, submitLabel, accent = "#7c3aed" }) {
+  const fields = [
+    { key: "name", label: "Name", placeholder: "Full name" },
+    { key: "email", label: "Email", placeholder: "email@example.com" },
+    { key: "phone", label: "Phone", placeholder: "+91 9876543210" },
+    { key: "businessCategory", label: "Business Category", placeholder: "e.g. IT Services" },
+    { key: "services", label: "Services (comma separated)", placeholder: "Web Dev, Cloud, AI" },
+    { key: "location", label: "Location", placeholder: "Bangalore, India" },
+    { key: "description", label: "Description", placeholder: "Brief description", textarea: true },
+  ];
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div style={{ ...styles.modalGradientHeader, background: `linear-gradient(135deg, ${accent}, #ec4899)` }}>
+          <h3 style={styles.modalTitle}>{title}</h3>
+          <button style={styles.closeBtn} onClick={onClose}>
+            <X size={18} color="#fff" />
+          </button>
+        </div>
+        <div style={styles.modalBody}>
+          {fields.map((f) => (
+            <FormField
+              key={f.key}
+              label={f.label}
+              value={form[f.key]}
+              onChange={(v) => setForm({ ...form, [f.key]: v })}
+              placeholder={f.placeholder}
+              textarea={f.textarea}
+            />
+          ))}
+        </div>
+        <div style={styles.modalFooter}>
+          <button style={styles.cancelBtn} onClick={onClose}>Cancel</button>
+          <button style={{ ...styles.primaryBtn, background: `linear-gradient(135deg, ${accent}, #ec4899)` }} onClick={onSubmit}>
+            <Save size={15} />
+            {submitLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, color, iconColor }) {
   return (
     <div style={styles.statCard}>
-      <div style={styles.statIcon}>{icon}</div>
+      <div style={{ ...styles.statIcon, background: color, border: `1.5px solid ${iconColor}22` }}>{icon}</div>
       <div>
         <p style={styles.statValue}>{value}</p>
         <p style={styles.statLabel}>{label}</p>
@@ -389,437 +450,202 @@ function FormField({ label, value, onChange, placeholder, textarea }) {
     <div style={styles.fieldWrap}>
       <label style={styles.label}>{label}</label>
       {textarea ? (
-        <textarea
-          rows={3}
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          style={styles.textareaInput}
-        />
+        <textarea rows={3} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={styles.textareaInput} />
       ) : (
-        <input
-          type="text"
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          style={styles.input}
-        />
+        <input type="text" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={styles.input} />
       )}
     </div>
   );
 }
 
+// ---------- DataGrid SX ----------
 const dataGridSx = {
   border: "none",
-  backgroundColor: "#0f0f0f",
+  backgroundColor: "#ffffff",
+  "& .MuiDataGrid-columnHeaders": { backgroundColor: "#f3effe !important", borderBottom: "1.5px solid #e0d9f7" },
+  "& .MuiDataGrid-columnHeader": { backgroundColor: "#f3effe !important" },
+  "& .MuiDataGrid-columnHeaderTitle": { color: "#7c3aed !important", fontWeight: 600, fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.04em" },
+  "& .MuiDataGrid-row": { backgroundColor: "#ffffff !important", color: "#1a1a2e" },
+  "& .MuiDataGrid-cell": { backgroundColor: "#ffffff !important", color: "#1a1a2e", borderBottom: "0.5px solid #f0ecfd" },
+  "& .MuiDataGrid-row:hover": { backgroundColor: "#faf8ff !important" },
+  "& .MuiDataGrid-footerContainer": { backgroundColor: "#f3effe !important", borderTop: "1.5px solid #e0d9f7" },
+  "& .MuiTablePagination-root": { color: "#7c3aed" },
+  "& .MuiDataGrid-overlay": { backgroundColor: "#ffffff" },
+  "& .MuiDataGrid-cell:focus": { outline: "none !important" },
+  "& .MuiDataGrid-columnHeader:focus": { outline: "none !important" },
+  "& .MuiDataGrid-cell:focus-within": { outline: "none !important" },
+  "& .MuiDataGrid-columnHeader:focus-within": { outline: "none !important" },
+  "& .MuiDataGrid-sortIcon": { opacity: "1 !important", visibility: "visible !important", color: "#a855f7 !important" },
+  "& .MuiDataGrid-iconButtonContainer": { visibility: "visible !important", opacity: "1 !important", width: "auto !important" },
+  "& .MuiIconButton-root": { background: "transparent !important", color: "#7c3aed !important", padding: "2px !important" },
+  "& .MuiIconButton-root:hover": { background: "transparent !important" },
+  "& .MuiDataGrid-menuIcon": { visibility: "visible !important", opacity: "1 !important", width: "auto !important" },
+  "& .MuiDataGrid-menuIconButton": { visibility: "visible !important", opacity: "1 !important", color: "#7c3aed !important" },
+  "& .MuiDataGrid-iconSeparator": { display: "none !important" },
+  "& .MuiTablePagination-selectIcon": { color: "#a855f7" },
+  "& .MuiDataGrid-selectedRowCount": { color: "#7c3aed" },
+};
 
-  "& .MuiDataGrid-root": {
-    backgroundColor: "#0f0f0f !important",
-  },
-
-  "& .MuiDataGrid-main": {
-    backgroundColor: "#0f0f0f !important",
-  },
-
-  "& .MuiDataGrid-virtualScroller": {
-    backgroundColor: "#0f0f0f !important",
-  },
-
-  "& .MuiDataGrid-columnHeaders": {
-    backgroundColor: "#141414 !important",
-    color: "#ffffff !important",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-  },
-
-  "& .MuiDataGrid-columnHeader": {
-    backgroundColor: "#141414 !important",
-    color: "#ffffff !important",
-  },
-
-  "& .MuiDataGrid-columnHeaderTitle": {
-    color: "#ffffff !important",
-    fontWeight: 600,
-  },
-
-  "& .MuiDataGrid-topContainer": {
-    backgroundColor: "#141414 !important",
-  },
-
-  "& .MuiDataGrid-container--top": {
-    backgroundColor: "#141414 !important",
-  },
-
-  "& .MuiDataGrid-row": {
-    backgroundColor: "#0f0f0f !important",
-    color: "#ffffff",
-  },
-
-  "& .MuiDataGrid-cell": {
-    backgroundColor: "#0f0f0f !important",
-    color: "#ffffff",
-    borderBottom: "0.5px solid rgba(255,255,255,0.06)",
-  },
-
-  "& .MuiDataGrid-row:hover": {
-    backgroundColor: "rgba(245,158,11,0.08) !important",
-  },
-
-  "& .MuiDataGrid-footerContainer": {
-    backgroundColor: "#141414 !important",
-    color: "#ffffff",
-    borderTop: "1px solid rgba(255,255,255,0.08)",
-  },
-
-  "& .MuiTablePagination-root": {
-    color: "#ffffff",
-  },
-
-  "& .MuiSvgIcon-root": {
-    color: "#ffffff",
-  },
-
-  "& .MuiDataGrid-overlay": {
-    backgroundColor: "#0f0f0f",
-  },
-
-  "& .MuiDataGrid-cell:focus": {
-    outline: "none",
-  },
-
-  "& .MuiDataGrid-columnHeader:focus": {
-    outline: "none",
-  },
+const regionalDataGridSx = {
+  ...dataGridSx,
+  backgroundColor: "#faf8ff",
+  "& .MuiDataGrid-columnHeaders": { backgroundColor: "#ede8fc !important", borderBottom: "1.5px solid #d8b4fe" },
+  "& .MuiDataGrid-columnHeader": { backgroundColor: "#ede8fc !important" },
+  "& .MuiDataGrid-columnHeaderTitle": { color: "#7c3aed !important", fontWeight: 600 },
+  "& .MuiDataGrid-row": { backgroundColor: "#faf8ff !important", color: "#1a1a2e" },
+  "& .MuiDataGrid-cell": { backgroundColor: "#faf8ff !important", color: "#1a1a2e", borderBottom: "0.5px solid #ede8fc" },
+  "& .MuiDataGrid-row:hover": { backgroundColor: "#f3effe !important" },
+  "& .MuiDataGrid-footerContainer": { backgroundColor: "#ede8fc !important" },
+  "& .MuiDataGrid-overlay": { backgroundColor: "#faf8ff" },
 };
 
 const styles = {
   root: {
     minHeight: "100vh",
-    background: "#0a0a0a",
+    background: "linear-gradient(135deg, #f5f4fb 0%, #ede8fc 50%, #fce8f3 100%)",
     fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    position: "relative",
-    overflow: "hidden",
-  },
-  blob1: {
-    position: "fixed",
-    top: "-100px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "600px",
-    height: "400px",
-    borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(245,158,11,0.06) 0%, transparent 65%)",
-    pointerEvents: "none",
-    zIndex: 0,
-  },
-  blob2: {
-    position: "fixed",
-    bottom: "0",
-    right: "-100px",
-    width: "400px",
-    height: "400px",
-    borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(34,197,94,0.04) 0%, transparent 65%)",
-    pointerEvents: "none",
-    zIndex: 0,
-  },
-  grid: {
-    position: "fixed",
-    inset: 0,
-    backgroundImage:
-      "linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)",
-    backgroundSize: "40px 40px",
-    pointerEvents: "none",
-    zIndex: 0,
   },
   navbar: {
-    position: "sticky",
-    top: 0,
-    zIndex: 50,
-    background: "rgba(10,10,10,0.85)",
-    backdropFilter: "blur(16px)",
-    borderBottom: "0.5px solid rgba(255,255,255,0.08)",
+    position: "sticky", top: 0, zIndex: 50,
+    background: "rgba(255,255,255,0.85)", backdropFilter: "blur(16px)",
+    borderBottom: "0.5px solid #e0d9f7",
   },
   navInner: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    padding: "14px 24px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
+    maxWidth: "1200px", margin: "0 auto", padding: "14px 24px",
+    display: "flex", justifyContent: "space-between", alignItems: "center",
   },
-  navBrand: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  },
+  navBrand: { display: "flex", alignItems: "center", gap: "12px" },
   navIconBadge: {
-    width: "36px",
-    height: "36px",
-    background: "rgba(245,158,11,0.1)",
-    border: "0.5px solid rgba(245,158,11,0.25)",
-    borderRadius: "10px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    width: "36px", height: "36px",
+    background: "#f3effe", border: "1.5px solid #e0d9f7",
+    borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center",
   },
-  navTitle: {
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#ffffff",
-    margin: 0,
-    letterSpacing: "-0.02em",
-  },
-  navSub: {
-    fontSize: "11px",
-    color: "rgba(255,255,255,0.3)",
-    margin: 0,
-  },
-  container: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    padding: "2rem 1.5rem 4rem",
-    position: "relative",
-    zIndex: 1,
-  },
-  accentLine: {
-    height: "1px",
-    background: "linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)",
-    marginBottom: "1.5rem",
-  },
+  navTitle: { fontSize: "16px", fontWeight: "600", color: "#1a1a2e", margin: 0, letterSpacing: "-0.02em" },
+  navSub: { fontSize: "11px", color: "#a0a0b0", margin: 0 },
+  container: { maxWidth: "1200px", margin: "0 auto", padding: "2rem 1.5rem 4rem" },
   statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: "14px",
-    marginBottom: "2rem",
+    display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "14px", marginBottom: "2rem",
   },
   statCard: {
-    background: "rgba(255,255,255,0.04)",
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    borderRadius: "16px",
-    padding: "1.25rem",
-    display: "flex",
-    alignItems: "center",
-    gap: "14px",
-    backdropFilter: "blur(16px)",
+    background: "#ffffff", border: "0.5px solid #e0d9f7",
+    borderRadius: "16px", padding: "1.25rem",
+    display: "flex", alignItems: "center", gap: "14px",
   },
   statIcon: {
-    width: "44px",
-    height: "44px",
-    minWidth: "44px",
-    background: "rgba(255,255,255,0.05)",
-    border: "0.5px solid rgba(255,255,255,0.08)",
-    borderRadius: "12px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    width: "44px", height: "44px", minWidth: "44px",
+    borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center",
   },
-  statValue: {
-    fontSize: "24px",
-    fontWeight: "700",
-    color: "#ffffff",
-    margin: "0 0 2px",
-    letterSpacing: "-0.02em",
-  },
-  statLabel: {
-    fontSize: "12px",
-    color: "rgba(255,255,255,0.4)",
-    margin: 0,
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  },
+  statValue: { fontSize: "24px", fontWeight: "700", color: "#1a1a2e", margin: "0 0 2px", letterSpacing: "-0.02em" },
+  statLabel: { fontSize: "12px", color: "#a0a0b0", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" },
   sectionCard: {
-    background: "rgba(255,255,255,0.04)",
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    borderRadius: "20px",
-    padding: "1.5rem",
-    marginBottom: "1.5rem",
-    backdropFilter: "blur(16px)",
+    background: "#ffffff", border: "0.5px solid #e0d9f7",
+    borderRadius: "20px", overflow: "hidden", marginBottom: "1.5rem",
   },
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-    gap: "12px",
-    marginBottom: "1.25rem",
+  cardGradientHeader: {
+    background: "linear-gradient(135deg, #7c3aed, #a855f7, #ec4899)",
+    padding: "20px 24px",
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    flexWrap: "wrap", gap: "12px",
   },
-  sectionTitle: {
-    fontSize: "18px",
-    fontWeight: "600",
-    color: "#ffffff",
-    margin: "0 0 4px",
-    letterSpacing: "-0.02em",
-  },
-  sectionSub: {
-    fontSize: "13px",
-    color: "rgba(255,255,255,0.35)",
-    margin: 0,
-  },
+  cardHeaderTitle: { fontSize: "18px", fontWeight: "600", color: "#ffffff", margin: "0 0 4px", letterSpacing: "-0.02em" },
+  cardHeaderSub: { fontSize: "13px", color: "rgba(255,255,255,0.75)", margin: 0 },
   primaryBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    background: "#f59e0b",
-    border: "none",
-    borderRadius: "10px",
-    padding: "10px 18px",
-    color: "#000",
-    fontSize: "13px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "background 0.2s",
+    display: "flex", alignItems: "center", gap: "8px",
+    background: "rgba(255,255,255,0.2)", border: "1.5px solid rgba(255,255,255,0.5)",
+    borderRadius: "10px", padding: "10px 18px",
+    color: "#ffffff", fontSize: "13px", fontWeight: "600", cursor: "pointer",
   },
-  gridWrap: {
-  background: "#0f0f0f",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.08)",
-  overflow: "hidden",
+  gridWrap: { overflow: "hidden" },
+  emptyRow: { padding: "1.5rem", textAlign: "center", fontSize: "13px", color: "#a0a0b0" },
+  expandBtn: {
+    width: "28px", height: "28px", borderRadius: "8px",
+    background: "#f3effe", border: "1px solid #e0d9f7",
+    display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
   },
-  emptyRow: {
-    padding: "1.5rem",
-    textAlign: "center",
-    fontSize: "13px",
-    color: "rgba(255,255,255,0.3)",
+  addRegionalBtn: {
+    display: "flex", alignItems: "center", gap: "5px",
+    padding: "5px 10px", background: "#f3effe",
+    border: "1px solid #e0d9f7", borderRadius: "8px", cursor: "pointer",
   },
-  cellTags: {
-    display: "flex",
-    gap: "4px",
-    flexWrap: "wrap",
-    alignItems: "center",
+  addRegionalBtnLarge: {
+    display: "flex", alignItems: "center", gap: "7px",
+    padding: "8px 16px", background: "#f3effe",
+    border: "1.5px solid #d8b4fe", borderRadius: "10px",
+    color: "#7c3aed", fontSize: "13px", fontWeight: "600", cursor: "pointer",
   },
+  regionalPanel: {
+    margin: "12px 16px 16px",
+    background: "#faf8ff", border: "1px solid #e0d9f7", borderRadius: "14px", padding: "1.25rem",
+  },
+  regionalPanelHeader: {
+    display: "flex", justifyContent: "space-between", alignItems: "center",
+    flexWrap: "wrap", gap: "10px", marginBottom: "1rem",
+  },
+  regionalPanelTitle: { display: "flex", alignItems: "center", gap: "10px" },
+  regionalDot: {
+    width: "8px", height: "8px", borderRadius: "50%",
+    background: "linear-gradient(135deg, #7c3aed, #ec4899)",
+  },
+  regionalPanelName: { fontSize: "14px", color: "#4a4a6a" },
+  regionalGridWrap: {
+    background: "#ffffff", borderRadius: "10px",
+    border: "1px solid #e0d9f7", overflow: "hidden",
+  },
+  cellTags: { display: "flex", gap: "4px", flexWrap: "wrap", alignItems: "center" },
   cellTag: {
-    padding: "2px 8px",
-    background: "rgba(255,255,255,0.06)",
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    borderRadius: "20px",
-    fontSize: "10px",
-    color: "rgba(255,255,255,0.5)",
+    padding: "2px 8px", background: "#f3effe",
+    border: "0.5px solid #e0d9f7", borderRadius: "20px",
+    fontSize: "10px", color: "#7c3aed",
   },
   iconActionBtn: {
-    width: "30px",
-    height: "30px",
-    borderRadius: "8px",
-    background: "rgba(245,158,11,0.08)",
-    border: "0.5px solid rgba(245,158,11,0.2)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "border-color 0.2s",
+    width: "30px", height: "30px", borderRadius: "8px",
+    background: "#f3effe", border: "1px solid #e0d9f7",
+    display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
   },
   iconActionBtnDanger: {
-    width: "30px",
-    height: "30px",
-    borderRadius: "8px",
-    background: "rgba(239,68,68,0.08)",
-    border: "0.5px solid rgba(239,68,68,0.2)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "border-color 0.2s",
+    width: "30px", height: "30px", borderRadius: "8px",
+    background: "#fff0f0", border: "1px solid #fecaca",
+    display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
   },
   modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.6)",
-    backdropFilter: "blur(4px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100,
-    padding: "1.5rem",
+    position: "fixed", inset: 0, background: "rgba(124,58,237,0.15)",
+    backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
+    justifyContent: "center", zIndex: 100, padding: "1.5rem",
   },
   modal: {
-    width: "100%",
-    maxWidth: "480px",
-    maxHeight: "90vh",
-    overflowY: "auto",
-    background: "#0f0f0f",
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    borderRadius: "20px",
-    padding: "1.5rem",
+    width: "100%", maxWidth: "480px", maxHeight: "90vh", overflowY: "auto",
+    background: "#ffffff", border: "0.5px solid #e0d9f7",
+    borderRadius: "20px", overflow: "hidden",
   },
-  modalHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "1.25rem",
+  modalGradientHeader: {
+    padding: "20px 24px",
+    display: "flex", justifyContent: "space-between", alignItems: "center",
   },
-  modalTitle: {
-    fontSize: "18px",
-    fontWeight: "600",
-    color: "#ffffff",
-    margin: 0,
-    letterSpacing: "-0.02em",
-  },
+  modalTitle: { fontSize: "18px", fontWeight: "600", color: "#ffffff", margin: 0, letterSpacing: "-0.02em" },
   closeBtn: {
-    width: "32px",
-    height: "32px",
-    borderRadius: "8px",
-    background: "rgba(255,255,255,0.05)",
-    border: "0.5px solid rgba(255,255,255,0.08)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
+    width: "32px", height: "32px", borderRadius: "8px",
+    background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)",
+    display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
   },
-  modalBody: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-    marginBottom: "1.5rem",
-  },
-  fieldWrap: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  label: {
-    fontSize: "11px",
-    color: "rgba(255,255,255,0.4)",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  },
+  modalBody: { display: "flex", flexDirection: "column", gap: "1rem", padding: "24px 24px 0" },
+  modalFooter: { display: "flex", justifyContent: "flex-end", gap: "10px", padding: "20px 24px 24px" },
+  fieldWrap: { display: "flex", flexDirection: "column", gap: "6px" },
+  label: { fontSize: "11px", color: "#a0a0b0", textTransform: "uppercase", letterSpacing: "0.05em" },
   input: {
-    width: "100%",
-    background: "rgba(255,255,255,0.05)",
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    borderRadius: "10px",
-    padding: "11px 14px",
-    color: "#ffffff",
-    fontSize: "14px",
-    boxSizing: "border-box",
-    transition: "border-color 0.2s",
-    fontFamily: "inherit",
+    width: "100%", background: "#faf9fe", border: "1.5px solid #e5e0f8",
+    borderRadius: "10px", padding: "11px 14px", color: "#1a1a2e", fontSize: "14px",
+    boxSizing: "border-box", fontFamily: "inherit",
   },
   textareaInput: {
-    width: "100%",
-    background: "rgba(255,255,255,0.05)",
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    borderRadius: "10px",
-    padding: "11px 14px",
-    color: "#ffffff",
-    fontSize: "14px",
-    boxSizing: "border-box",
-    transition: "border-color 0.2s",
-    resize: "none",
-    fontFamily: "inherit",
-  },
-  modalFooter: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "10px",
+    width: "100%", background: "#faf9fe", border: "1.5px solid #e5e0f8",
+    borderRadius: "10px", padding: "11px 14px", color: "#1a1a2e", fontSize: "14px",
+    boxSizing: "border-box", resize: "none", fontFamily: "inherit",
   },
   cancelBtn: {
-    padding: "10px 18px",
-    background: "rgba(255,255,255,0.04)",
-    border: "0.5px solid rgba(255,255,255,0.1)",
-    borderRadius: "10px",
-    color: "rgba(255,255,255,0.6)",
-    fontSize: "13px",
-    fontWeight: "500",
-    cursor: "pointer",
+    padding: "10px 18px", background: "#f3effe",
+    border: "1.5px solid #e0d9f7", borderRadius: "10px",
+    color: "#7c3aed", fontSize: "13px", fontWeight: "500", cursor: "pointer",
   },
 };
 

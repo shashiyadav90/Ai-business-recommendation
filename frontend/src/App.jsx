@@ -1,8 +1,8 @@
-import AdminDashboard from "./pages/AdminDashboard";
+import MembersPage from "./pages/MembersPage";
 import "./App.css";
 
 function App() {
-  return <AdminDashboard />;
+  return <MembersPage />;
 }
 
 export default App;
